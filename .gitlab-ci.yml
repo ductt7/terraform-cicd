@@ -1,0 +1,42 @@
+include:
+ - template: Terraform/Base.gitlab-ci.yml  
+ - template: Jobs/SAST-IaC.gitlab-ci.yml  
+ 
+variables:
+  IGNORE_TF_DEPRECATION_WARNING: 'true'
+
+stages:
+ - validate
+ - test
+ - build
+ - deploy
+ - cleanup
+
+fmt:
+ extends: .terraform:fmt
+ needs: []
+
+validate:
+ extends: .terraform:validate
+ needs: []
+
+build:
+ extends: .terraform:build
+
+deploy:
+ extends: .terraform:deploy
+ rules:
+   - if: $CI_COMMIT_TITLE != "destroy"
+     when: on_success
+ dependencies:
+   - build
+ environment:
+   name: $TF_STATE_NAME
+
+cleanup:
+ extends: .terraform:destroy
+ environment:
+   name: $TF_STATE_NAME
+ rules:
+   - if: $CI_COMMIT_TITLE == "destroy"
+     when: on_success
